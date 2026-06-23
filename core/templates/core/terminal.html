@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ENTORNO SINTÉTICO // DIRECTO</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+    <header class="sys-header">
+        <span class="blink">></span> ENTORNO SINTÉTICO [Dron Sintético] // DIRECTO
+    </header>
+    
+    <main class="grid-layout">
+        <section class="module box-dron">
+            <h2 class="module-title">DRON_CENTRAL.exe // FLUIDEZ ACTIVA</h2>
+            <div class="canvas-wrapper">
+                <canvas id="dron-canvas" touch-action="none"></canvas>
+            </div>
+            <div id="dron-status" class="status-bar">MODO ESPERA</div>
+        </section>
+
+        <section class="module box-ensamble">
+            <h2 class="module-title">ENSAMBLE_CUANTIZADO.sys // POLIFONÍA</h2>
+            <div id="pad-grid"></div>
+        </section>
+
+        <section class="module box-efimero">
+            <h2 class="module-title">MEMORIA_VOLATIL.sh // PURGA AUTO</h2>
+            <div class="efimero-controls">
+                <label for="audio-upload" class="btn">INYECCIÓN RAM</label>
+                <input type="file" id="audio-upload" accept="audio/*">
+                
+                <div id="playback-buttons" style="display: none;">
+                    <button id="play-efimero" class="btn">PLAY [LOOP]</button>
+                    <button id="stop-efimero" class="btn">PURGAR RAM</button>
+                </div>
+            </div>
+            <div id="file-status" class="status-bar">RAM VACÍA</div>
+        </section>
+    </main>
+
+    <script src="{% static 'core/js/engine.js' %}"></script>
+</body>
+</html>
