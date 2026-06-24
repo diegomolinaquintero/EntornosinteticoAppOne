@@ -1,10 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     let audioCtx = null;
+    let masterCompressor = null; // Protector de audio para múltiples toques
 
-    // Patrón de inicialización estricto
     const initAudio = () => {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+            
+            // Limitador Maestro: Evita que el sonido sature al usar muchos dedos
+            masterCompressor = audioCtx.createDynamicsCompressor();
+            masterCompressor.threshold.setValueAtTime(-15, audioCtx.currentTime);
+            masterCompressor.knee.setValueAtTime(10, audioCtx.currentTime);
+            masterCompressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+            masterCompressor.attack.setValueAtTime(0, audioCtx.currentTime);
+            masterCompressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+            masterCompressor.connect(audioCtx.destination);
         }
         if (audioCtx.state === 'suspended') audioCtx.resume();
     };
@@ -12,16 +21,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('pointerdown', initAudio, { once: true });
 
     /* =====================================================================
-       1. DRON CENTRAL (Puntero unificado + RequestAnimationFrame)
+       1. DRON CENTRAL (Polifonía Multitáctil de Alto Rendimiento)
        ===================================================================== */
     const canvas = document.getElementById('dron-canvas');
     const ctx = canvas.getContext('2d');
     const statusDron = document.getElementById('dron-status');
 
-    let isDrawing = false;
-    let targetX = 0, targetY = 0;
-    let dronOscillators = [];
-    let masterGain = null;
+    // Diccionario para almacenar múltiples dedos de forma independiente
+    const activeTouches = new Map();
 
     const resize = () => {
         canvas.width = canvas.parentElement.clientWidth;
@@ -30,38 +37,36 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resize);
     resize();
 
-    // Loop visual desacoplado del audio para mantener 60fps
     const drawLoop = () => {
-        if (isDrawing) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Efecto estela de alta velocidad
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+        // Estela visual
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar cada dedo activo en la pantalla
+        activeTouches.forEach(touch => {
             ctx.beginPath();
-            ctx.arc(targetX, targetY, 40, 0, Math.PI * 2);
+            ctx.arc(touch.x, touch.y, 40, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(57, 255, 20, 0.8)';
             ctx.fill();
-        } else {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+        });
+        
         requestAnimationFrame(drawLoop);
     };
     requestAnimationFrame(drawLoop);
 
-    const startDron = (x, y) => {
+    // Iniciar síntesis para un solo dedo
+    const startDron = (pointerId, x, y) => {
         initAudio();
-        if (isDrawing) return;
-        isDrawing = true;
-        targetX = x; targetY = y;
-
-        masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-        // Ataque largo y fluido (4s)
-        masterGain.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + 4);
-        masterGain.connect(audioCtx.destination);
-
-        const freqs = [55, 110, 165, 220]; // Textura espectral
         
-        dronOscillators = freqs.map((f, i) => {
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        // Volumen más bajo por dedo para compensar la polifonía
+        gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 4);
+        gainNode.connect(masterCompressor);
+
+        const freqs = [55, 110, 165, 220];
+        
+        const oscillators = freqs.map((f, i) => {
             const osc = audioCtx.createOscillator();
             const filter = audioCtx.createBiquadFilter();
             
@@ -72,66 +77,84 @@ document.addEventListener('DOMContentLoaded', () => {
             filter.frequency.setValueAtTime(400, audioCtx.currentTime);
 
             osc.connect(filter);
-            filter.connect(masterGain);
+            filter.connect(gainNode);
             osc.start();
+            
             return { osc, filter, baseFreq: f };
         });
-        updateDronAudio(x, y);
+
+        // Registrar este toque específico
+        activeTouches.set(pointerId, { x, y, oscillators, gainNode });
+        updateDronAudio(pointerId, x, y);
     };
 
-    const updateDronAudio = (x, y) => {
-        targetX = x; targetY = y;
+    // Actualizar audio para un dedo en movimiento
+    const updateDronAudio = (pointerId, x, y) => {
+        const touch = activeTouches.get(pointerId);
+        if (!touch) return;
+        
+        touch.x = x; 
+        touch.y = y;
+
         const normX = x / canvas.width;
         const normY = 1 - (y / canvas.height);
 
-        statusDron.innerText = `X: ${normX.toFixed(2)} | Y: ${normY.toFixed(2)}`;
+        statusDron.innerText = `TOQUES ACTIVOS: ${activeTouches.size} // POLIFONÍA`;
 
-        // Modulación fluida sin colapsar el hilo de audio
         const time = audioCtx.currentTime;
-        dronOscillators.forEach((node, i) => {
+        touch.oscillators.forEach((node, i) => {
             node.osc.frequency.setTargetAtTime(node.baseFreq + (normX * 10 * i), time, 0.1);
             node.filter.frequency.setTargetAtTime(200 + (normY * 2000), time, 0.1);
         });
     };
 
-    const stopDron = () => {
-        if (!isDrawing) return;
-        isDrawing = false;
-        statusDron.innerText = `MODO ESPERA // FADE OUT ACTIVO`;
+    // Detener y purgar un dedo específico
+    const stopDron = (pointerId) => {
+        const touch = activeTouches.get(pointerId);
+        if (!touch) return;
 
-        if (masterGain) {
-            masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
-            // Relajación muy larga y fluida (6s)
-            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 6);
+        if (touch.gainNode) {
+            touch.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+            touch.gainNode.gain.setValueAtTime(touch.gainNode.gain.value, audioCtx.currentTime);
+            touch.gainNode.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 6);
 
-            const nodesToKill = dronOscillators;
-            const gainToKill = masterGain;
+            const nodesToKill = touch.oscillators;
+            const gainToKill = touch.gainNode;
 
-            // Purga estricta tras la envolvente
             setTimeout(() => {
                 nodesToKill.forEach(n => { n.osc.stop(); n.osc.disconnect(); n.filter.disconnect(); });
                 gainToKill.disconnect();
             }, 6100);
         }
-        dronOscillators = [];
-        masterGain = null;
+        
+        // Eliminar el dedo del registro inmediatamente
+        activeTouches.delete(pointerId);
+        
+        if (activeTouches.size === 0) {
+            statusDron.innerText = `MODO ESPERA // FADE OUT ACTIVO`;
+        } else {
+            statusDron.innerText = `TOQUES ACTIVOS: ${activeTouches.size} // POLIFONÍA`;
+        }
     };
 
-    // POINTER EVENTS: Velocidad pura, reemplaza mouse y touch.
+    // PointerEvents: La clave del Multitouch
     canvas.addEventListener('pointerdown', (e) => {
         canvas.setPointerCapture(e.pointerId);
-        startDron(e.offsetX, e.offsetY);
+        startDron(e.pointerId, e.offsetX, e.offsetY);
     });
+    
     canvas.addEventListener('pointermove', (e) => {
-        if (isDrawing) updateDronAudio(e.offsetX, e.offsetY);
+        if (activeTouches.has(e.pointerId)) {
+            updateDronAudio(e.pointerId, e.offsetX, e.offsetY);
+        }
     });
-    canvas.addEventListener('pointerup', stopDron);
-    canvas.addEventListener('pointercancel', stopDron);
+    
+    canvas.addEventListener('pointerup', (e) => stopDron(e.pointerId));
+    canvas.addEventListener('pointercancel', (e) => stopDron(e.pointerId));
 
 
     /* =====================================================================
-       2. ENSAMBLE CUANTIZADO (Gestión de Memoria Autónoma)
+       2. ENSAMBLE CUANTIZADO
        ===================================================================== */
     const padGrid = document.getElementById('pad-grid');
     const pentatonica = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
@@ -140,11 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.createElement('button');
         btn.classList.add('pad');
         btn.innerText = `PAD_0${idx + 1}`;
-        // Prevenir context menu en móviles al mantener pulsado
         btn.oncontextmenu = (e) => e.preventDefault(); 
 
         const playNota = (e) => {
-            e.preventDefault(); // Evitar doble disparo
+            e.preventDefault(); 
             initAudio();
             
             const osc = audioCtx.createOscillator();
@@ -158,9 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
 
             osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            gain.connect(masterCompressor); // Conectar al limitador
 
-            // Destrucción nativa y automática del nodo. (Purga perfecta).
             osc.onended = () => {
                 gain.disconnect();
                 osc.disconnect();
@@ -173,14 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => btn.classList.remove('active-pad'), 100);
         };
 
-        // PointerEvents para los pads
         btn.addEventListener('pointerdown', playNota);
         padGrid.appendChild(btn);
     });
 
 
     /* =====================================================================
-       3. PAISAJES EFÍMEROS (Inyección Directa en RAM)
+       3. PAISAJES EFÍMEROS
        ===================================================================== */
     const fileInput = document.getElementById('audio-upload');
     const playEfimeroBtn = document.getElementById('play-efimero');
@@ -207,13 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             statusRam.innerText = `ERROR DE LECTURA.`;
         }
-        fileInput.value = ''; // Limpiar input
+        fileInput.value = ''; 
     });
 
     playEfimeroBtn.addEventListener('pointerdown', () => {
         if (!bufferRam) return;
         
-        // Si hay uno sonando, detenerlo antes de relanzar
         if (sourceNode) {
             try { sourceNode.stop(); sourceNode.disconnect(); } catch(e){}
         }
@@ -226,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gainEfimero.gain.value = 0.6;
 
         sourceNode.connect(gainEfimero);
-        gainEfimero.connect(audioCtx.destination);
+        gainEfimero.connect(masterCompressor); // Conectar al limitador
         sourceNode.start();
         
         playEfimeroBtn.style.color = 'var(--bg-pure)';
