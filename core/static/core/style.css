@@ -4,6 +4,7 @@
     --bg-pure: #000000;
     --phosphor-green: #39ff14;
     --phosphor-dark: #0a290a;
+    --text-white: #ffffff;
 }
 
 * {
@@ -20,11 +21,12 @@ body {
     background-color: var(--bg-pure);
     color: var(--phosphor-green);
     font-family: 'VT323', monospace;
+    font-size: 16px;
     height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 10px;
-    overflow: hidden;
+    overflow: hidden; /* Bloqueo estricto de scroll global */
 }
 
 .sys-header {
@@ -38,14 +40,17 @@ body {
 .blink { animation: blinker 1s linear infinite; }
 @keyframes blinker { 50% { opacity: 0; } }
 
-/* Cuadrícula Base (Pantallas Grandes) */
+/* =====================================================================
+   CUADRÍCULA BASE (PANTALLAS GRANDES)
+   ===================================================================== */
 .grid-layout {
     display: grid;
     grid-template-columns: 1.5fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 10px;
     flex-grow: 1;
-    min-height: 0; /* Permite que los hijos no desborden */
+    min-height: 0;
+    height: calc(100vh - 60px);
 }
 
 .module {
@@ -77,13 +82,12 @@ body {
     flex-shrink: 0;
 }
 
-/* Lienzo */
+/* Canvas Dron */
 .canvas-wrapper {
     flex-grow: 1;
     position: relative;
     width: 100%;
 }
-
 canvas {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -91,7 +95,7 @@ canvas {
     cursor: crosshair;
 }
 
-/* Pads */
+/* Pads Grid */
 #pad-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -99,7 +103,6 @@ canvas {
     gap: 8px;
     flex-grow: 1;
 }
-
 .pad {
     background: transparent;
     border: 1px solid var(--phosphor-green);
@@ -109,22 +112,20 @@ canvas {
     will-change: transform, background-color;
     transition: transform 0.05s ease, background-color 0.05s ease;
 }
-
 .pad:active, .pad.active-pad {
     background: var(--phosphor-green);
     color: var(--bg-pure);
     transform: scale(0.95);
 }
 
-/* Efímeros */
-.efimero-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* Efímeros y FX Master */
+.efimero-fx-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
     flex-grow: 1;
-    justify-content: center;
+    align-items: center;
 }
-
 input[type="file"] { display: none; }
 
 .btn {
@@ -137,83 +138,14 @@ input[type="file"] { display: none; }
     text-align: center;
     cursor: pointer;
 }
-
-.btn:active {
-    background: var(--phosphor-green);
-    color: var(--bg-pure);
-}
+.btn-small { font-size: 1.2rem; padding: 8px; }
+.status-small { font-size: 0.9rem; text-align: center; color: var(--text-white); }
+.btn:active { background: var(--phosphor-green); color: var(--bg-pure); }
 
 #playback-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-}
-
-/* =========================================================
-   MEDIA QUERIES (Responsividad para Móviles/Tablets Verticales)
-   ========================================================= */
-@media (max-width: 768px) {
-    .sys-header {
-        font-size: 1.2rem;
-    }
-    .grid-layout {
-        /* Cambiamos a 1 sola columna y dividimos la altura porcentualmente */
-        grid-template-columns: 1fr;
-        grid-template-rows: 45% 30% 25%;
-        gap: 5px;
-    }
-    
-    .box-dron, .box-ensamble, .box-efimero {
-        grid-column: 1 / -1;
-    }
-    
-    .box-dron { grid-row: 1; }
-    .box-ensamble { grid-row: 2; padding: 5px; }
-    .box-efimero { grid-row: 3; padding: 5px; }
-
-    #pad-grid {
-        gap: 5px;
-    }
-    
-    .pad {
-        font-size: 1rem; /* Textos más pequeños para que encajen en celular */
-    }
-    
-    .btn {
-        font-size: 1.2rem;
-        padding: 8px;
-    }
-    .efimero-fx-layout {
-        grid-template-columns: 1fr; /* Apila el botón y los efectos en celular */
-        gap: 5px;
-    }
-    .fx-panel {
-        border-left: none;
-        border-top: 1px dashed var(--phosphor-green);
-        padding-left: 0;
-        padding-top: 5px;
-    }
-}
-
-/* =========================================================
-   PANEL DE EFECTOS MAESTROS Y LAYOUT EFÍMERO
-   ========================================================= */
-.efimero-fx-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    flex-grow: 1;
-    align-items: center;
-}
-
-.btn-small {
-    font-size: 1.2rem;
-    padding: 8px;
-}
-
-.status-small {
-    font-size: 0.9rem;
-    text-align: center;
 }
 
 .fx-panel {
@@ -223,40 +155,98 @@ input[type="file"] { display: none; }
     border-left: 1px dashed var(--phosphor-green);
     padding-left: 15px;
 }
-
 .fx-knob {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
-
 .fx-knob label {
     display: flex;
     justify-content: space-between;
     font-size: 1.1rem;
 }
 
-/* Estilo Terminal para los Sliders (Range Inputs) */
-input[type=range] {
-    -webkit-appearance: none;
-    width: 100%;
-    background: transparent;
-}
-input[type=range]:focus {
-    outline: none;
-}
+/* Estilo Terminal para los Sliders */
+input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+input[type=range]:focus { outline: none; }
 input[type=range]::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 4px;
-    cursor: pointer;
-    background: var(--phosphor-dark);
-    border: 1px solid var(--phosphor-green);
+    width: 100%; height: 4px; cursor: pointer;
+    background: var(--phosphor-dark); border: 1px solid var(--phosphor-green);
 }
 input[type=range]::-webkit-slider-thumb {
-    height: 20px;
-    width: 12px;
-    background: var(--phosphor-green);
-    cursor: pointer;
-    -webkit-appearance: none;
-    margin-top: -9px;
+    height: 20px; width: 12px; background: var(--phosphor-green);
+    cursor: pointer; -webkit-appearance: none; margin-top: -9px;
+}
+
+/* =====================================================================
+   ACTUALIZACIÓN MÓVIL: ULTRA-COMPACTA (CERO SCROLL)
+   ===================================================================== */
+@media (max-width: 768px) {
+    body {
+        height: 100vh;
+        overflow: hidden; /* GARANTIZADO: Cero scroll */
+        padding: 4px; /* Maximizamos el espacio de pantalla */
+    }
+
+    .sys-header {
+        font-size: 1rem;
+        margin-bottom: 4px;
+        padding-bottom: 2px;
+    }
+
+    /* Distribución rígida del 100% de la altura disponible */
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        /* Dron 40%, Pads 30%, Efímero/FX 30% */
+        grid-template-rows: 40% 30% calc(30% - 8px); 
+        gap: 4px;
+        height: calc(100vh - 35px); /* Ajustado al header pequeño */
+    }
+
+    .module {
+        padding: 4px;
+        border-width: 1px;
+    }
+
+    .module-title { font-size: 0.85rem; padding: 2px; margin-bottom: 4px; }
+    .status-bar { font-size: 0.75rem; padding: 2px; margin-top: 4px; }
+
+    /* Reasignación de grilla para apilamiento vertical */
+    .box-dron { grid-row: 1 / 2; grid-column: 1 / -1; }
+    .box-ensamble { grid-row: 2 / 3; grid-column: 1 / -1; padding: 4px; }
+    .box-efimero { grid-row: 3 / 4; grid-column: 1 / -1; padding: 4px; }
+
+    /* Compactación de los Pads */
+    #pad-grid { gap: 3px; }
+    .pad { font-size: 1rem; }
+
+    /* Compactación del módulo inferior (RAM y FX) */
+    .efimero-fx-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Colocamos botones a la izquierda, FX a la derecha */
+        gap: 6px;
+        align-items: start;
+    }
+
+    .efimero-controls { gap: 4px; }
+    .btn-small { font-size: 0.85rem; padding: 6px; }
+    .status-small { font-size: 0.7rem; }
+
+    .fx-panel {
+        padding-left: 6px;
+        gap: 4px; /* Perillas mucho más juntas */
+        border-top: none;
+        border-left: 1px dashed var(--phosphor-green);
+    }
+
+    .fx-knob label { font-size: 0.8rem; margin-bottom: 2px; }
+
+    /* Perillas más delgadas para no ocupar campo visual */
+    input[type=range]::-webkit-slider-thumb {
+        height: 14px; width: 10px; margin-top: -6px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        height: 3px;
+    }
 }
