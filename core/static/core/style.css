@@ -183,4 +183,80 @@ input[type="file"] { display: none; }
         font-size: 1.2rem;
         padding: 8px;
     }
+    .efimero-fx-layout {
+        grid-template-columns: 1fr; /* Apila el botón y los efectos en celular */
+        gap: 5px;
+    }
+    .fx-panel {
+        border-left: none;
+        border-top: 1px dashed var(--phosphor-green);
+        padding-left: 0;
+        padding-top: 5px;
+    }
+}
+
+/* =========================================================
+   PANEL DE EFECTOS MAESTROS Y LAYOUT EFÍMERO
+   ========================================================= */
+.efimero-fx-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    flex-grow: 1;
+    align-items: center;
+}
+
+.btn-small {
+    font-size: 1.2rem;
+    padding: 8px;
+}
+
+.status-small {
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.fx-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-left: 1px dashed var(--phosphor-green);
+    padding-left: 15px;
+}
+
+.fx-knob {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fx-knob label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1rem;
+}
+
+/* Estilo Terminal para los Sliders (Range Inputs) */
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+}
+input[type=range]:focus {
+    outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: var(--phosphor-dark);
+    border: 1px solid var(--phosphor-green);
+}
+input[type=range]::-webkit-slider-thumb {
+    height: 20px;
+    width: 12px;
+    background: var(--phosphor-green);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -9px;
 }

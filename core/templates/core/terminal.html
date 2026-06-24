@@ -27,17 +27,35 @@
         </section>
 
         <section class="module box-efimero">
-            <h2 class="module-title">MEMORIA_VOLATIL.sh // PURGA AUTO</h2>
-            <div class="efimero-controls">
-                <label for="audio-upload" class="btn">INYECCIÓN RAM</label>
-                <input type="file" id="audio-upload" accept="audio/*">
-                
-                <div id="playback-buttons" style="display: none;">
-                    <button id="play-efimero" class="btn">PLAY [LOOP]</button>
-                    <button id="stop-efimero" class="btn">PURGAR RAM</button>
+            <h2 class="module-title">MEMORIA_VOLATIL.sh & FX_MASTER.sys</h2>
+            
+            <div class="efimero-fx-layout">
+                <div class="efimero-controls">
+                    <label for="audio-upload" class="btn btn-small">INYECCIÓN RAM</label>
+                    <input type="file" id="audio-upload" accept="audio/*">
+                    
+                    <div id="playback-buttons" style="display: none;">
+                        <button id="play-efimero" class="btn btn-small">PLAY [LOOP]</button>
+                        <button id="stop-efimero" class="btn btn-small">PURGAR</button>
+                    </div>
+                    <div id="file-status" class="status-bar status-small">RAM VACÍA</div>
+                </div>
+
+                <div class="fx-panel">
+                    <div class="fx-knob">
+                        <label>REVERB <span id="val-rev">0%</span></label>
+                        <input type="range" id="fx-reverb" min="0" max="100" value="0">
+                    </div>
+                    <div class="fx-knob">
+                        <label>DELAY <span id="val-del">0%</span></label>
+                        <input type="range" id="fx-delay" min="0" max="100" value="0">
+                    </div>
+                    <div class="fx-knob">
+                        <label>CHORUS <span id="val-cho">0%</span></label>
+                        <input type="range" id="fx-chorus" min="0" max="100" value="0">
+                    </div>
                 </div>
             </div>
-            <div id="file-status" class="status-bar">RAM VACÍA</div>
         </section>
     </main>
 
